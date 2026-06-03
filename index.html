@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MemKept — Your AI Memory, Kept</title>
+  <meta name="description" content="Local-first AI memory for every tool you use. No cloud. No subscriptions. Works with ChatGPT, Claude, Cursor, Gemini and more." />
+  <meta property="og:title" content="MemKept — Your AI Memory, Kept" />
+  <meta property="og:description" content="Stop re-explaining yourself. MemKept gives every AI tool persistent memory — stored privately on your machine." />
+  <meta property="og:url" content="https://memkept.com" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink:     #080b0f;
+      --surface: #0d1117;
+      --panel:   #111820;
+      --edge:    #1c2633;
+      --teal:    #00e5c3;
+      --teal-dim:#00b89a;
+      --amber:   #f59e0b;
+      --red:     #ef4444;
+      --blue:    #3b82f6;
+      --green:   #10b981;
+      --text:    #e2e8f0;
+      --muted:   #64748b;
+      --subtle:  #1e2d3d;
+      --mono:    'Space Mono', monospace;
+      --sans:    'DM Sans', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--ink);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ── NOISE OVERLAY ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none; z-index: 9999; opacity: 0.4;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 48px;
+      border-bottom: 1px solid transparent;
+      z-index: 100;
+      transition: border-color 0.3s, background 0.3s;
+    }
+    nav.scrolled {
+      background: rgba(8, 11, 15, 0.92);
+      border-color: var(--edge);
+      backdrop-filter: blur(12px);
+    }
+    .nav-logo {
+      font-family: var(--mono);
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--teal);
+      text-decoration: none;
+      letter-spacing: 0.04em;
+    }
+    .nav-logo span { color: var(--muted); }
+    .nav-links {
+      display: flex; gap: 32px; list-style: none;
+    }
+    .nav-links a {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      text-decoration: none;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--teal); }
+    .nav-cta {
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 8px 20px;
+      background: transparent;
+      border: 1px solid var(--teal);
+      color: var(--teal);
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s, color 0.2s;
+      letter-spacing: 0.06em;
+    }
+    .nav-cta:hover { background: var(--teal); color: var(--ink); }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      padding: 120px 48px 80px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Grid background */
+    .hero::after {
+      content: '';
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(var(--edge) 1px, transparent 1px),
+        linear-gradient(90deg, var(--edge) 1px, transparent 1px);
+      background-size: 64px 64px;
+      opacity: 0.3;
+      pointer-events: none;
+    }
+
+    /* Teal glow orb */
+    .hero-glow {
+      position: absolute;
+      top: 20%; right: 5%;
+      width: 520px; height: 520px;
+      background: radial-gradient(circle, rgba(0,229,195,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-content {
+      max-width: 680px;
+      position: relative; z-index: 1;
+    }
+
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--teal);
+      border: 1px solid rgba(0,229,195,0.25);
+      background: rgba(0,229,195,0.05);
+      padding: 5px 12px;
+      border-radius: 2px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 32px;
+      opacity: 0;
+      animation: fadeUp 0.6s ease 0.2s forwards;
+    }
+    .hero-badge::before {
+      content: '';
+      width: 6px; height: 6px;
+      background: var(--teal);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
+    }
+
+    .hero-headline {
+      font-family: var(--mono);
+      font-size: clamp(36px, 5vw, 58px);
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+      opacity: 0;
+      animation: fadeUp 0.6s ease 0.4s forwards;
+    }
+
+    .hero-headline .accent { color: var(--teal); }
+
+    .hero-typewriter {
+      font-family: var(--mono);
+      font-size: clamp(36px, 5vw, 58px);
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      color: var(--muted);
+      margin-bottom: 32px;
+      opacity: 0;
+      animation: fadeUp 0.6s ease 0.5s forwards;
+      min-height: 1.2em;
+    }
+    .hero-typewriter .cursor {
+      display: inline-block;
+      width: 3px; height: 0.85em;
+      background: var(--teal);
+      margin-left: 2px;
+      vertical-align: middle;
+      animation: blink 1s step-end infinite;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    .hero-sub {
+      font-size: 18px;
+      color: var(--muted);
+      line-height: 1.7;
+      max-width: 520px;
+      margin-bottom: 48px;
+      font-weight: 300;
+      opacity: 0;
+      animation: fadeUp 0.6s ease 0.7s forwards;
+    }
+    .hero-sub strong { color: var(--text); font-weight: 500; }
+
+    .hero-actions {
+      display: flex; gap: 16px; flex-wrap: wrap;
+      opacity: 0;
+      animation: fadeUp 0.6s ease 0.9s forwards;
+    }
+
+    .btn-primary {
+      font-family: var(--mono);
+      font-size: 13px;
+      padding: 14px 28px;
+      background: var(--teal);
+      color: var(--ink);
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,229,195,0.3);
+    }
+
+    .btn-ghost {
+      font-family: var(--mono);
+      font-size: 13px;
+      padding: 14px 28px;
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--edge);
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      letter-spacing: 0.04em;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .btn-ghost:hover { border-color: var(--teal); color: var(--teal); }
+
+    /* ── HERO VISUAL (right side) ── */
+    .hero-visual {
+      position: absolute;
+      right: 48px; top: 50%;
+      transform: translateY(-50%);
+      width: 420px;
+      opacity: 0;
+      animation: fadeIn 1s ease 1.2s forwards;
+      z-index: 1;
+    }
+
+    .terminal {
+      background: var(--panel);
+      border: 1px solid var(--edge);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,229,195,0.05);
+    }
+    .terminal-bar {
+      display: flex; align-items: center; gap: 6px;
+      padding: 10px 14px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--edge);
+    }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot-r { background: #ff5f57; }
+    .dot-y { background: #febc2e; }
+    .dot-g { background: #28c840; }
+    .terminal-title {
+      flex: 1; text-align: center;
+      font-family: var(--mono); font-size: 11px;
+      color: var(--muted); letter-spacing: 0.04em;
+    }
+    .terminal-body {
+      padding: 16px 18px;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.8;
+    }
+    .t-prompt { color: var(--teal); }
+    .t-cmd { color: var(--text); }
+    .t-out { color: var(--muted); }
+    .t-ok { color: var(--green); }
+    .t-dim { color: #2d4a5e; }
+    .t-line {
+      opacity: 0;
+      animation: fadeIn 0.3s ease forwards;
+    }
+    .t-line:nth-child(1)  { animation-delay: 1.4s; }
+    .t-line:nth-child(2)  { animation-delay: 1.8s; }
+    .t-line:nth-child(3)  { animation-delay: 2.1s; }
+    .t-line:nth-child(4)  { animation-delay: 2.4s; }
+    .t-line:nth-child(5)  { animation-delay: 2.6s; }
+    .t-line:nth-child(6)  { animation-delay: 2.8s; }
+    .t-line:nth-child(7)  { animation-delay: 3.0s; }
+    .t-line:nth-child(8)  { animation-delay: 3.2s; }
+    .t-line:nth-child(9)  { animation-delay: 3.4s; }
+    .t-line:nth-child(10) { animation-delay: 3.6s; }
+
+    /* Memory file cards */
+    .memory-cards {
+      display: flex; flex-direction: column; gap: 8px;
+      margin-top: 16px;
+      padding: 0 18px 16px;
+    }
+    .mem-card {
+      background: var(--subtle);
+      border: 1px solid var(--edge);
+      border-left: 3px solid var(--teal);
+      border-radius: 4px;
+      padding: 8px 10px;
+      opacity: 0;
+      transform: translateX(12px);
+      animation: slideIn 0.4s ease forwards;
+    }
+    .mem-card:nth-child(1) { border-left-color: var(--blue);  animation-delay: 3.8s; }
+    .mem-card:nth-child(2) { border-left-color: var(--amber); animation-delay: 4.0s; }
+    .mem-card:nth-child(3) { border-left-color: var(--green); animation-delay: 4.2s; }
+    .mem-card-top {
+      display: flex; justify-content: space-between;
+      font-family: var(--mono); font-size: 9px;
+      color: var(--muted); letter-spacing: 0.08em;
+      text-transform: uppercase; margin-bottom: 3px;
+    }
+    .mem-card-content { font-size: 11px; color: var(--text); line-height: 1.4; }
+
+    @keyframes slideIn {
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    /* ── SECTION SHARED ── */
+    section { padding: 96px 48px; }
+
+    .section-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--teal);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    .section-title {
+      font-family: var(--mono);
+      font-size: clamp(28px, 3.5vw, 42px);
+      font-weight: 700;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      margin-bottom: 20px;
+    }
+    .section-sub {
+      font-size: 16px;
+      color: var(--muted);
+      max-width: 560px;
+      line-height: 1.7;
+      font-weight: 300;
+    }
+
+    /* ── DIVIDER ── */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--edge);
+      margin: 0 48px;
+    }
+
+    /* ── SELLING POINTS ── */
+    .selling {
+      background: var(--surface);
+    }
+    .selling-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      margin-top: 56px;
+    }
+    .sell-card {
+      background: var(--panel);
+      padding: 36px 32px;
+      position: relative;
+      overflow: hidden;
+      transition: background 0.2s;
+    }
+    .sell-card:hover { background: var(--subtle); }
+    .sell-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--teal), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .sell-card:hover::before { opacity: 1; }
+    .sell-num {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--teal);
+      letter-spacing: 0.1em;
+      margin-bottom: 20px;
+      opacity: 0.6;
+    }
+    .sell-icon {
+      font-size: 28px;
+      margin-bottom: 16px;
+      display: block;
+    }
+    .sell-title {
+      font-family: var(--mono);
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: var(--text);
+    }
+    .sell-desc {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.65;
+      font-weight: 300;
+    }
+    .sell-desc strong { color: var(--text); font-weight: 400; }
+
+    /* ── HOW IT WORKS ── */
+    .how {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .how-header { margin-bottom: 64px; }
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+      position: relative;
+    }
+    .steps::before {
+      content: '';
+      position: absolute;
+      top: 28px; left: calc(12.5% + 12px); right: calc(12.5% + 12px);
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--teal), var(--teal), transparent);
+      opacity: 0.3;
+    }
+    .step {
+      padding: 0 24px;
+      text-align: center;
+      opacity: 0;
+      animation: fadeUp 0.5s ease forwards;
+    }
+    .step:nth-child(1) { animation-delay: 0.1s; }
+    .step:nth-child(2) { animation-delay: 0.25s; }
+    .step:nth-child(3) { animation-delay: 0.4s; }
+    .step:nth-child(4) { animation-delay: 0.55s; }
+    .step-num {
+      width: 56px; height: 56px;
+      border: 1px solid var(--teal);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--mono); font-size: 14px; font-weight: 700;
+      color: var(--teal);
+      margin: 0 auto 24px;
+      background: var(--ink);
+      position: relative; z-index: 1;
+    }
+    .step-title {
+      font-family: var(--mono);
+      font-size: 14px; font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .step-desc {
+      font-size: 13px; color: var(--muted);
+      line-height: 1.6; font-weight: 300;
+    }
+
+    /* ── COMPATIBILITY ── */
+    .compat {
+      background: var(--surface);
+      text-align: center;
+    }
+    .compat-header { margin-bottom: 48px; }
+    .compat-header .section-sub { margin: 0 auto; }
+    .compat-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    .compat-tag {
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 8px 16px;
+      background: var(--panel);
+      border: 1px solid var(--edge);
+      border-radius: 4px;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .compat-tag:hover { border-color: var(--teal); color: var(--teal); }
+    .compat-note {
+      margin-top: 32px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .compat-note span { color: var(--teal); }
+
+    /* ── PRIVACY STATEMENT ── */
+    .privacy-strip {
+      padding: 40px 48px;
+      background: rgba(0,229,195,0.03);
+      border-top: 1px solid rgba(0,229,195,0.1);
+      border-bottom: 1px solid rgba(0,229,195,0.1);
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      flex-wrap: wrap;
+    }
+    .privacy-icon { font-size: 32px; flex-shrink: 0; }
+    .privacy-text { flex: 1; }
+    .privacy-text h3 {
+      font-family: var(--mono);
+      font-size: 16px; font-weight: 700;
+      margin-bottom: 6px; color: var(--teal);
+    }
+    .privacy-text p { font-size: 14px; color: var(--muted); font-weight: 300; }
+    .privacy-pills {
+      display: flex; gap: 10px; flex-wrap: wrap;
+    }
+    .privacy-pill {
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 6px 12px;
+      border: 1px solid rgba(0,229,195,0.2);
+      border-radius: 2px;
+      color: var(--teal);
+      letter-spacing: 0.06em;
+    }
+
+    /* ── PRICING ── */
+    .pricing {
+      max-width: 1100px; margin: 0 auto;
+    }
+    .pricing-header { margin-bottom: 56px; }
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+    }
+    .price-card {
+      background: var(--panel);
+      padding: 36px 32px;
+      position: relative;
+      border: 1px solid var(--edge);
+    }
+    .price-card.featured {
+      background: var(--subtle);
+      border-color: var(--teal);
+    }
+    .price-badge {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--ink);
+      background: var(--teal);
+      padding: 3px 10px;
+      border-radius: 2px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      position: absolute;
+      top: -1px; right: 24px;
+    }
+    .price-tier {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    .price-amount {
+      font-family: var(--mono);
+      font-size: 36px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: var(--text);
+    }
+    .price-amount .currency { font-size: 18px; vertical-align: super; }
+    .price-period {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 28px;
+    }
+    .price-features {
+      list-style: none;
+      display: flex; flex-direction: column; gap: 10px;
+      margin-bottom: 32px;
+    }
+    .price-features li {
+      font-size: 13px;
+      color: var(--muted);
+      display: flex; gap: 10px; align-items: flex-start;
+    }
+    .price-features li::before {
+      content: '─';
+      color: var(--teal);
+      font-family: var(--mono);
+      flex-shrink: 0;
+    }
+    .price-features li.active { color: var(--text); }
+    .price-cta {
+      display: block; width: 100%;
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 12px;
+      text-align: center;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      letter-spacing: 0.06em;
+      transition: all 0.2s;
+    }
+    .price-cta-ghost {
+      background: transparent;
+      border: 1px solid var(--edge);
+      color: var(--muted);
+    }
+    .price-cta-ghost:hover { border-color: var(--teal); color: var(--teal); }
+    .price-cta-fill {
+      background: var(--teal);
+      border: 1px solid var(--teal);
+      color: var(--ink);
+      font-weight: 700;
+    }
+    .price-cta-fill:hover { background: var(--teal-dim); }
+
+    /* ── CTA BANNER ── */
+    .cta-banner {
+      background: var(--surface);
+      text-align: center;
+      padding: 80px 48px;
+      position: relative;
+      overflow: hidden;
+    }
+    .cta-banner::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px; height: 300px;
+      background: radial-gradient(ellipse, rgba(0,229,195,0.07) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .cta-banner h2 {
+      font-family: var(--mono);
+      font-size: clamp(24px, 3vw, 36px);
+      font-weight: 700;
+      margin-bottom: 16px;
+      position: relative; z-index: 1;
+    }
+    .cta-banner p {
+      font-size: 15px; color: var(--muted);
+      margin-bottom: 36px;
+      font-weight: 300;
+      position: relative; z-index: 1;
+    }
+    .cta-banner .cta-actions {
+      display: flex; gap: 14px; justify-content: center;
+      flex-wrap: wrap;
+      position: relative; z-index: 1;
+    }
+    .cta-install {
+      font-family: var(--mono);
+      font-size: 13px;
+      padding: 10px 20px;
+      background: var(--panel);
+      border: 1px solid var(--edge);
+      border-radius: 4px;
+      color: var(--green);
+      letter-spacing: 0.04em;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      padding: 40px 48px;
+      border-top: 1px solid var(--edge);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .footer-logo {
+      font-family: var(--mono);
+      font-size: 14px;
+      color: var(--teal);
+      font-weight: 700;
+    }
+    .footer-links {
+      display: flex; gap: 24px; list-style: none; flex-wrap: wrap;
+    }
+    .footer-links a {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      text-decoration: none;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-copy {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    /* ── SCROLL REVEAL ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 1024px) {
+      .hero-visual { display: none; }
+      .selling-grid { grid-template-columns: repeat(2, 1fr); }
+      .steps { grid-template-columns: repeat(2, 1fr); gap: 32px; }
+      .steps::before { display: none; }
+      .pricing-grid { grid-template-columns: 1fr; max-width: 420px; margin: 0 auto; }
+    }
+    @media (max-width: 640px) {
+      nav { padding: 16px 24px; }
+      .nav-links { display: none; }
+      section { padding: 64px 24px; }
+      .hero { padding: 100px 24px 60px; }
+      .selling-grid { grid-template-columns: 1fr; }
+      .steps { grid-template-columns: 1fr; }
+      footer { padding: 32px 24px; flex-direction: column; align-items: flex-start; }
+      .divider { margin: 0 24px; }
+      .privacy-strip { padding: 32px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="nav">
+  <a href="#" class="nav-logo">Mem<span>Kept</span></a>
+  <ul class="nav-links">
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+    <li><a href="https://github.com/shaiknayeemahmed/membank">GitHub</a></li>
+  </ul>
+  <a href="https://github.com/shaiknayeemahmed/membank" class="nav-cta">Get Early Access</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-content">
+    <div class="hero-badge">Open Beta · Local-First · Free</div>
+    <h1 class="hero-headline">Your AI finally<br><span class="accent">remembers you.</span></h1>
+    <div class="hero-typewriter" id="typewriter"><span class="cursor"></span></div>
+    <p class="hero-sub">
+      Stop re-explaining yourself every session.<br>
+      MemKept gives <strong>every AI tool</strong> persistent memory —
+      stored <strong>100% on your machine.</strong>
+    </p>
+    <div class="hero-actions">
+      <a href="https://github.com/shaiknayeemahmed/membank" class="btn-primary">Download Free →</a>
+      <a href="#how" class="btn-ghost">See How It Works</a>
+    </div>
+  </div>
+
+  <!-- Terminal visual -->
+  <div class="hero-visual">
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="dot dot-r"></div>
+        <div class="dot dot-y"></div>
+        <div class="dot dot-g"></div>
+        <span class="terminal-title">~/.memkept</span>
+      </div>
+      <div class="terminal-body">
+        <div class="t-line"><span class="t-prompt">❯ </span><span class="t-cmd">python3 install.py</span></div>
+        <div class="t-line"><span class="t-out">Preflight checks...</span></div>
+        <div class="t-line"><span class="t-out">  ✓ uv already installed</span></div>
+        <div class="t-line"><span class="t-out">  → Seeding your memory anchor</span></div>
+        <div class="t-line"><span class="t-out">Wiring platforms...</span></div>
+        <div class="t-line"><span class="t-ok">  ✓ Claude Code wired</span></div>
+        <div class="t-line"><span class="t-ok">  ✓ Cursor wired</span></div>
+        <div class="t-line"><span class="t-ok">  ✓ Windsurf wired</span></div>
+        <div class="t-line t-dim">────────────────────</div>
+        <div class="t-line"><span class="t-ok">✓ MemKept installed. </span><span class="t-out">Your AI remembers.</span></div>
+      </div>
+      <div class="memory-cards">
+        <div class="mem-card">
+          <div class="mem-card-top"><span>DECISION</span><span>burnbite/auth</span></div>
+          <div class="mem-card-content">Decided JWT over sessions — mobile needs stateless tokens</div>
+        </div>
+        <div class="mem-card">
+          <div class="mem-card-top"><span>PREFERENCE</span><span>personal/style</span></div>
+          <div class="mem-card-content">Prefer clean architecture, always write tests first</div>
+        </div>
+        <div class="mem-card">
+          <div class="mem-card-top"><span>MILESTONE</span><span>burnbite/launch</span></div>
+          <div class="mem-card-content">Shipped v1.0 to production — 2026-06-03</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- SELLING POINTS -->
+<section class="selling" id="features">
+  <div class="reveal">
+    <div class="section-label">Why MemKept</div>
+    <h2 class="section-title">Memory that works<br>the way you do.</h2>
+  </div>
+  <div class="selling-grid">
+    <div class="sell-card reveal">
+      <div class="sell-num">01</div>
+      <span class="sell-icon">🔒</span>
+      <div class="sell-title">Zero Cloud, Zero Risk</div>
+      <p class="sell-desc">Every memory lives in <strong>~/.memkept/</strong> on your machine. No API keys. No subscriptions. No data leaving your device — ever. Your client secrets, your code decisions, your preferences. Yours alone.</p>
+    </div>
+    <div class="sell-card reveal">
+      <div class="sell-num">02</div>
+      <span class="sell-icon">⚡</span>
+      <div class="sell-title">One Install, Every Tool</div>
+      <p class="sell-desc">Run <strong>python3 install.py</strong> — done. Automatically wires to Claude Code, Cursor, Windsurf, VS Code, and Gemini CLI. Plus a browser extension for ChatGPT, Claude.ai, Gemini, and Perplexity.</p>
+    </div>
+    <div class="sell-card reveal">
+      <div class="sell-num">03</div>
+      <span class="sell-icon">📂</span>
+      <div class="sell-title">Plain Files, Not a Database</div>
+      <p class="sell-desc">Memories stored as <strong>plain markdown</strong> with YAML frontmatter. Open in any text editor. Search with grep. Git-friendly. No vendor lock-in — ever. Still yours in 10 years.</p>
+    </div>
+    <div class="sell-card reveal">
+      <div class="sell-num">04</div>
+      <span class="sell-icon">🧠</span>
+      <div class="sell-title">Context That Compounds</div>
+      <p class="sell-desc">Decisions, preferences, milestones, facts — all <strong>automatically extracted</strong> from your sessions. Every new AI conversation starts knowing who you are, what you're building, and what you've already decided.</p>
+    </div>
+    <div class="sell-card reveal">
+      <div class="sell-num">05</div>
+      <span class="sell-icon">👁</span>
+      <div class="sell-title">Built for Every Worker</div>
+      <p class="sell-desc">Developers who code. <strong>Freelancers</strong> with 8 active clients. <strong>SME owners</strong> who use ChatGPT daily. <strong>Students</strong> whose AI tutor forgets everything. One product, four audiences, same privacy guarantee.</p>
+    </div>
+    <div class="sell-card reveal">
+      <div class="sell-num">06</div>
+      <span class="sell-icon">🌐</span>
+      <div class="sell-title">Browser Extension Included</div>
+      <p class="sell-desc">Floating sidebar on any web AI. <strong>Inject your context</strong> into ChatGPT in one click. Select any text and save it as a memory. Remember entire conversations. Works on 6 AI platforms out of the box.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="how">
+    <div class="how-header reveal">
+      <div class="section-label">How It Works</div>
+      <h2 class="section-title">From zero to<br>persistent memory in 60 seconds.</h2>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-title">Install</div>
+        <p class="step-desc">Run <code style="font-family:var(--mono);font-size:11px;color:var(--teal)">python3 install.py</code>. Auto-detects every AI tool on your machine and wires them all.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-title">Onboard</div>
+        <p class="step-desc">Answer 5 quick questions. Your name, stack, projects, working style. Seeds your anchor — first session already has context.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-title">Use Normally</div>
+        <p class="step-desc">Work with Claude, ChatGPT, Cursor as usual. MemKept auto-saves decisions and sweeps sessions on close.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">04</div>
+        <div class="step-title">Context Follows You</div>
+        <p class="step-desc">Every new session opens already knowing your projects, preferences, and decisions. Re-explaining is over.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRIVACY STRIP -->
+<div class="privacy-strip reveal">
+  <div class="privacy-icon">🔐</div>
+  <div class="privacy-text">
+    <h3>Privacy isn't a feature. It's the architecture.</h3>
+    <p>MemKept was designed from the ground up to never touch a cloud server. MCP server runs over stdio only — no network socket. HTTP sidecar binds to 127.0.0.1 only. Your memories never leave your machine.</p>
+  </div>
+  <div class="privacy-pills">
+    <div class="privacy-pill">100% Local</div>
+    <div class="privacy-pill">No API Keys</div>
+    <div class="privacy-pill">No Telemetry</div>
+    <div class="privacy-pill">MIT Licensed</div>
+    <div class="privacy-pill">Open Source</div>
+  </div>
+</div>
+
+<!-- COMPATIBILITY -->
+<section class="compat">
+  <div class="compat-header reveal">
+    <div class="section-label">Works With</div>
+    <h2 class="section-title">Every AI tool<br>you already use.</h2>
+    <p class="section-sub">MemKept integrates via MCP for coding tools and HTTP sidecar for browser tools. If it's AI, it works.</p>
+  </div>
+  <div class="compat-grid reveal">
+    <div class="compat-tag">Claude Code</div>
+    <div class="compat-tag">Cursor</div>
+    <div class="compat-tag">Windsurf</div>
+    <div class="compat-tag">VS Code + Copilot</div>
+    <div class="compat-tag">Gemini CLI</div>
+    <div class="compat-tag">ChatGPT</div>
+    <div class="compat-tag">Claude.ai</div>
+    <div class="compat-tag">Gemini Web</div>
+    <div class="compat-tag">Perplexity</div>
+    <div class="compat-tag">Mistral</div>
+    <div class="compat-tag">Cline</div>
+    <div class="compat-tag">Any MCP Client</div>
+  </div>
+  <p class="compat-note reveal">MCP protocol · <span>localhost:7474</span> HTTP sidecar · Chrome &amp; Firefox extension</p>
+</section>
+
+<hr class="divider" />
+
+<!-- PRICING -->
+<section id="pricing">
+  <div class="pricing">
+    <div class="pricing-header reveal">
+      <div class="section-label">Pricing</div>
+      <h2 class="section-title">Start free.<br>Pay once when you're ready.</h2>
+      <p class="section-sub">No subscriptions. No per-query costs. No cloud bills. Ever.</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="price-card reveal">
+        <div class="price-tier">Free Forever</div>
+        <div class="price-amount"><span class="currency">₹</span>0</div>
+        <div class="price-period">Always free — no card required</div>
+        <ul class="price-features">
+          <li class="active">MCP server + all 6 tools</li>
+          <li class="active">Plain markdown storage</li>
+          <li class="active">CLI — remember, recall, sweep</li>
+          <li class="active">Auto-install + platform wiring</li>
+          <li class="active">Claude Code auto-save hooks</li>
+          <li>Browser extension (basic)</li>
+          <li>Multiple onboarding modes</li>
+        </ul>
+        <a href="https://github.com/shaiknayeemahmed/membank" class="price-cta price-cta-ghost">Download Free</a>
+      </div>
+      <div class="price-card featured reveal">
+        <div class="price-badge">Most Popular</div>
+        <div class="price-tier">Pro</div>
+        <div class="price-amount"><span class="currency">₹</span>2,499</div>
+        <div class="price-period">One-time · Lifetime updates</div>
+        <ul class="price-features">
+          <li class="active">Everything in Free</li>
+          <li class="active">Browser extension — full features</li>
+          <li class="active">Inject context into any web AI</li>
+          <li class="active">Select → save on any page</li>
+          <li class="active">Unlimited project wings</li>
+          <li class="active">Freelancer + SME onboarding modes</li>
+          <li class="active">Student tutor mode</li>
+        </ul>
+        <a href="#" class="price-cta price-cta-fill">Get Pro — ₹2,499</a>
+      </div>
+      <div class="price-card reveal">
+        <div class="price-tier">Teams</div>
+        <div class="price-amount"><span class="currency">₹</span>750</div>
+        <div class="price-period">per seat / month</div>
+        <ul class="price-features">
+          <li class="active">Everything in Pro</li>
+          <li class="active">Shared project wings</li>
+          <li class="active">Team anchor templates</li>
+          <li class="active">Import teammate's memory</li>
+          <li class="active">Admin controls</li>
+          <li class="active">Priority support</li>
+          <li>Custom deployment (Enterprise)</li>
+        </ul>
+        <a href="mailto:hello@memkept.dev" class="price-cta price-cta-ghost">Contact for Teams</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA BANNER -->
+<section class="cta-banner">
+  <h2>Stop re-explaining yourself.<br>Start every session <span style="color:var(--teal)">already remembered.</span></h2>
+  <p>Free to install. One command. Works in 60 seconds.</p>
+  <div class="cta-actions">
+    <a href="https://github.com/shaiknayeemahmed/membank" class="btn-primary">Download MemKept Free →</a>
+    <div class="cta-install">python3 install.py</div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">MemKept</div>
+  <ul class="footer-links">
+    <li><a href="https://github.com/shaiknayeemahmed/membank">GitHub</a></li>
+    <li><a href="https://github.com/shaiknayeemahmed/membank/blob/main/docs/MEMKEPT-SRS.md">Docs</a></li>
+    <li><a href="mailto:hello@memkept.dev">Contact</a></li>
+  </ul>
+  <div class="footer-copy">© 2026 MemKept · MIT Licensed · memkept.com</div>
+</footer>
+
+<script>
+  // Nav scroll effect
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 40);
+  });
+
+  // Typewriter effect
+  const phrases = [
+    'Works with Claude.',
+    'Works with ChatGPT.',
+    'Works with Cursor.',
+    'Works everywhere.',
+  ];
+  const tw = document.getElementById('typewriter');
+  let pi = 0, ci = 0, deleting = false;
+  function type() {
+    const phrase = phrases[pi];
+    const cursor = '<span class="cursor"></span>';
+    if (!deleting) {
+      ci++;
+      tw.innerHTML = phrase.slice(0, ci) + cursor;
+      if (ci === phrase.length) { deleting = true; setTimeout(type, 1800); return; }
+    } else {
+      ci--;
+      tw.innerHTML = phrase.slice(0, ci) + cursor;
+      if (ci === 0) { deleting = false; pi = (pi + 1) % phrases.length; setTimeout(type, 400); return; }
+    }
+    setTimeout(type, deleting ? 40 : 70);
+  }
+  setTimeout(type, 1500);
+
+  // Scroll reveal
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); } });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
